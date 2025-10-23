@@ -1,37 +1,41 @@
 # 🧠 Ollama Preloaded (Llama 3)
 
-Pre-built Docker image containing **Ollama** and a **locally cached Llama 3 model** — ready to run instantly, without needing to download the model from Ollama’s registry.
+Pre-built Docker image containing **Ollama** and a **pre-cached Llama 3 model**, ready for instant startup — no downloads, no TLS issues, no waiting.
 
 ---
 
 ## 🚀 Overview
 
-This image is designed for developers and data engineers who want to:
-- Run **Ollama** offline or in air-gapped environments  
-- Avoid TLS / CA certificate issues during model pulls  
-- Deploy self-contained inference containers for **Llama 3**
+This image is optimized for developers and data engineers who need:
+- **Offline or air‑gapped** Ollama deployments  
+- **Fast container startup** without model pulls  
+- **Stable builds** that work in CI/CD pipelines  
+- **Automatic publishing** to Docker Hub + GitHub Container Registry
 
-It uses the official [`ollama/ollama:latest`](https://hub.docker.com/r/ollama/ollama) base image, with `llama3` pre-fetched into `/root/.ollama/models`.
+The container is built via a two‑stage Dockerfile using the official [`ollama/ollama:latest`](https://hub.docker.com/r/ollama/ollama) base image.
 
 ---
 
-## 🧱 Build Process (via GitHub Actions)
+## 🧱 Build Pipeline
 
-Each push to this repo triggers an automated **GitHub Actions workflow** that:
-1. Pulls the latest Ollama base image  
-2. Runs `ollama pull llama3` inside the build stage  
-3. Publishes the resulting image to **GitHub Container Registry (GHCR)**
+Each push or manual run of the GitHub Action will:
 
-Image tag example:
-```
-ghcr.io/rezer-bleede/ollama-preloaded:llama3
-```
+1. Pull the latest `ollama/ollama:latest` base image  
+2. Launch a temporary `ollama serve` daemon  
+3. Preload the `llama3` model  
+4. Copy preloaded models to a clean final image  
+5. Push to **Docker Hub** and **GHCR** simultaneously
+
+| Registry | Image |
+|-----------|--------|
+| GitHub Container Registry | `ghcr.io/rezer-bleede/ollama-preloaded:llama3` |
+| Docker Hub | `rezerbleede/ollama-preloaded:llama3` |
 
 ---
 
 ## 🐳 Usage
 
-### Run the container directly
+### Run directly
 ```bash
 docker run -d -p 11434:11434 ghcr.io/rezer-bleede/ollama-preloaded:llama3
 ```
@@ -41,11 +45,11 @@ docker run -d -p 11434:11434 ghcr.io/rezer-bleede/ollama-preloaded:llama3
 docker exec -it <container_id> ollama list
 ```
 
-### Generate text
+### Generate a response
 ```bash
 curl http://localhost:11434/api/generate -d '{
   "model": "llama3",
-  "prompt": "Explain data normalization in simple terms."
+  "prompt": "Summarize database normalization."
 }'
 ```
 
@@ -66,26 +70,19 @@ services:
 
 ---
 
-## 🧩 Why Preloaded?
+## 🧩 Why This Image
 
-- ✅ **Instant startup** – model already downloaded  
-- 🔒 **Offline-friendly** – no external network calls  
-- 🧰 **Consistent builds** – same model across all environments  
-- ⚡ **CI/CD-ready** – just pull and deploy  
-
----
-
-## 📦 Model Info
-
-| Model | Size | Parameters | Context | License |
-|--------|------|-------------|----------|-----------|
-| `llama3` | ~4–8 GB | 8B | 4K tokens | Meta Llama 3 Community License |
+- ✅ **Instant startup** – no model downloads  
+- 🔒 **Offline‑ready** – ships with `llama3` included  
+- 🧰 **CI/CD compatible** – builds cleanly in GitHub Actions  
+- ⚡ **Dual‑registry support** – GHCR + Docker Hub auto‑publish  
+- 🧱 **Two‑stage build** – no leftover files or temp daemons  
 
 ---
 
-## 🧰 Local Build (optional)
+## 🧰 Local Build (Optional)
 
-If you prefer to build manually:
+If you prefer to build locally instead of GitHub Actions:
 
 ```bash
 git clone https://github.com/rezer-bleede/ollama-preloaded.git
@@ -97,17 +94,17 @@ docker build -t ollama-preloaded:llama3 .
 
 ## 🪪 License
 
-Licensed under the **Apache 2.0 License**.  
-Ollama and Llama 3 are trademarks of their respective owners.
+Licensed under **Apache 2.0**.  
+Ollama and Llama 3 are trademarks of their respective owners.
 
 ---
 
 ## 👤 Author
 
-**Remis Bobby Haroon**  
+**Remis Bobby Haroon**  
 Data Engineer • AI Infrastructure Builder  
-[GitHub @rezer-bleede](https://github.com/rezer-bleede)
+[GitHub @rezer‑bleede](https://github.com/rezer-bleede)
 
 ---
 
-> ⚠️ This project is community-maintained and not affiliated with the Ollama team.
+> ⚠️ Community-maintained image — not affiliated with the Ollama team.
