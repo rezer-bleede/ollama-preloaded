@@ -1,110 +1,56 @@
-# 🧠 Ollama Preloaded (Llama 3)
+# 🧠 Ollama Preloaded
 
-Pre-built Docker image containing **Ollama** and a **pre-cached Llama 3 model**, ready for instant startup — no downloads, no TLS issues, no waiting.
-
----
+A lightweight preloaded container image for **Ollama**, designed to run models like **Llama 3** and **Phi-3 Mini** instantly — no download delay.
 
 ## 🚀 Overview
 
-This image is optimized for developers and data engineers who need:
-- **Offline or air‑gapped** Ollama deployments  
-- **Fast container startup** without model pulls  
-- **Stable builds** that work in CI/CD pipelines  
-- **Automatic publishing** to Docker Hub + GitHub Container Registry
+This image builds upon `ollama/ollama:latest` and preloads one or more models directly into the container at build time.  
+It’s ideal for use in air‑gapped environments, CI/CD pipelines, or rapid prototyping setups where model pulls are impractical or slow.
 
-The container is built via a two‑stage Dockerfile using the official [`ollama/ollama:latest`](https://hub.docker.com/r/ollama/ollama) base image.
+## 🧩 Preloaded Variants
 
----
+| Tag | Preloaded Model | Size (Approx.) | Notes |
+|-----|------------------|----------------|-------|
+| `llama3` | Meta Llama 3 | ~4.7 GB | High‑performance general‑purpose LLM |
+| `phi3-mini` | Microsoft Phi‑3 Mini | ~2.2 GB | Compact model optimized for efficiency |
 
-## 🧱 Build Pipeline
+## 🧱 Usage
 
-Each push or manual run of the GitHub Action will:
-
-1. Pull the latest `ollama/ollama:latest` base image  
-2. Launch a temporary `ollama serve` daemon  
-3. Preload the `llama3` model  
-4. Copy preloaded models to a clean final image  
-5. Push to **Docker Hub** and **GHCR** simultaneously
-
-| Registry | Image |
-|-----------|--------|
-| GitHub Container Registry | `ghcr.io/rezer-bleede/ollama-preloaded:llama3` |
-| Docker Hub | `rezerbleede/ollama-preloaded:llama3` |
-
----
-
-## 🐳 Usage
-
-### Run directly
+Run any variant directly:
 ```bash
-docker run -d -p 11434:11434 ghcr.io/rezer-bleede/ollama-preloaded:llama3
+docker run -d -p 11434:11434 rezerbleede/ollama-preloaded:llama3
+# or
+docker run -d -p 11434:11434 rezerbleede/ollama-preloaded:phi3-mini
 ```
 
-### Check available models
+Once running, you can interact with Ollama’s local API:
 ```bash
-docker exec -it <container_id> ollama list
+curl http://localhost:11434/api/generate -d '{"model":"llama3","prompt":"Hello"}'
 ```
 
-### Generate a response
+## 🧰 Environment Variables
+
+| Variable | Description | Default |
+|-----------|-------------|----------|
+| `OLLAMA_DEFAULT_MODEL` | Default model to serve | `llama3` |
+| `OLLAMA_KEEP_ALIVE` | Keep model in memory duration | `24h` |
+| `OLLAMA_SKIP_VERIFY` | Skip TLS verification (useful in air‑gapped environments) | `true` |
+
+## 🏗️ Building Locally
+
+You can build and preload any model via build‑args:
 ```bash
-curl http://localhost:11434/api/generate -d '{
-  "model": "llama3",
-  "prompt": "Summarize database normalization."
-}'
+docker build -t ollama-preloaded:custom --build-arg MODEL_NAME=llama3 .
 ```
 
----
+## ⚙️ GitHub Actions CI/CD
 
-## ⚙️ Example `docker-compose.yml`
+The project includes a fully automated workflow that:
+- Cleans disk space for large model layers
+- Builds and pushes preloaded variants (`llama3`, `phi3-mini`)
+- Publishes images to Docker Hub
 
-```yaml
-services:
-  ollama:
-    image: ghcr.io/rezer-bleede/ollama-preloaded:llama3
-    restart: unless-stopped
-    ports:
-      - "11434:11434"
-    environment:
-      OLLAMA_KEEP_ALIVE: 24h
-```
+View `.github/workflows/build.yml` for the latest automation steps.
 
----
-
-## 🧩 Why This Image
-
-- ✅ **Instant startup** – no model downloads  
-- 🔒 **Offline‑ready** – ships with `llama3` included  
-- 🧰 **CI/CD compatible** – builds cleanly in GitHub Actions  
-- ⚡ **Dual‑registry support** – GHCR + Docker Hub auto‑publish  
-- 🧱 **Two‑stage build** – no leftover files or temp daemons  
-
----
-
-## 🧰 Local Build (Optional)
-
-If you prefer to build locally instead of GitHub Actions:
-
-```bash
-git clone https://github.com/rezer-bleede/ollama-preloaded.git
-cd ollama-preloaded
-docker build -t ollama-preloaded:llama3 .
-```
-
----
-
-## 🪪 License
-
-Licensed under **Apache 2.0**.  
-Ollama and Llama 3 are trademarks of their respective owners.
-
----
-
-## 👤 Author
-
-**Remis Bobby Haroon**  
-Data Engineer • AI Infrastructure Builder  
-[GitHub @rezer‑bleede](https://github.com/rezer-bleede)
-
----
-
-> ⚠️ Community-maintained image — not affiliated with the Ollama team.
+## 📄 License
+Apache 2.0 © 2025 Rezer Bleede
