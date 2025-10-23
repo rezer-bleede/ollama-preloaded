@@ -1,4 +1,4 @@
-name: Build and Push Ollama Preloaded Image
+name: Build and Push Ollama Preloaded Images
 
 on:
   workflow_dispatch:
@@ -7,20 +7,19 @@ on:
       - main
 
 env:
-  IMAGE_NAME: ollama-preloaded
-  MODEL_NAME: llama3
   DOCKERHUB_USERNAME: rezerbleede
-  GHCR_USERNAME: rezer-bleede
+  IMAGE_NAME: ollama-preloaded
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       # -------------------------------
-      # 🧹 Free up disk space before build
+      # 🧹 Free up disk space
       # -------------------------------
       - name: Free disk space
         run: |
@@ -38,7 +37,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       # -------------------------------
-      # 🔑 Login to Docker registries
+      # 🔑 Login to DockerHub
       # -------------------------------
       - name: Login to DockerHub
         uses: docker/login-action@v3
@@ -46,23 +45,26 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
       # -------------------------------
-      # 🧱 Build the preloaded Ollama image
+      # 🧱 Build and push Llama 3 image
       # -------------------------------
-      - name: Build image
+      - name: Build and Push Llama 3 Image
         run: |
           docker buildx build \
             --platform linux/amd64 \
-            --progress=plain \
-            -t $DOCKERHUB_USERNAME/$IMAGE_NAME:$MODEL_NAME \
-            -t ghcr.io/$GHCR_USERNAME/$IMAGE_NAME:$MODEL_NAME \
+            -t $DOCKERHUB_USERNAME/$IMAGE_NAME:llama3 \
+            --build-arg MODEL_NAME=llama3 \
+            --push .
+
+      # -------------------------------
+      # 🧱 Build and push Phi-3 Mini image
+      # -------------------------------
+      - name: Build and Push Phi-3 Mini Image
+        run: |
+          docker buildx build \
+            --platform linux/amd64 \
+            -t $DOCKERHUB_USERNAME/$IMAGE_NAME:phi3-mini \
+            --build-arg MODEL_NAME=phi3:mini \
             --push .
 
       # -------------------------------
