@@ -11,13 +11,18 @@ ENV OLLAMA_SKIP_VERIFY=true \
 RUN set -eu; \
     nohup ollama serve >/tmp/ollama.log 2>&1 & \
     echo "Starting Ollama..." && \
-    for i in $(seq 1 30); do \
-        if curl -s http://localhost:11434/api/tags >/dev/null 2>&1; then \
-            echo "✅ Ollama is ready"; break; \
-        fi; \
-        echo "⏳ Waiting for Ollama ($i/30)..."; sleep 2; \
+    READY=0; \
+    for i in $(seq 1 150); do \
+        for HOST in localhost 127.0.0.1; do \
+            if curl -sSf --max-time 2 --connect-timeout 2 "http://$HOST:11434/api/tags" >/dev/null 2>&1; then \
+                echo "✅ Ollama is ready"; \
+                READY=1; \
+                break 2; \
+            fi; \
+        done; \
+        echo "⏳ Waiting for Ollama ($i/150)..."; sleep 2; \
     done; \
-    if ! curl -s http://localhost:11434/api/tags >/dev/null 2>&1; then \
+    if [ "$READY" -ne 1 ]; then \
         echo "❌ Ollama did not become ready"; \
         cat /tmp/ollama.log || true; \
         exit 1; \

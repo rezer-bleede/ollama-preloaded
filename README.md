@@ -46,6 +46,9 @@ curl http://localhost:11434/api/tags
 
 You should see the preloaded model (for example `llama3` or `phi3:mini`) listed in the response. The container relies on the built-in environment configuration (`OLLAMA_HOME=/root/.ollama`, `OLLAMA_MODELS=/root/.ollama/models`) so it stays compatible with newer Ollama releases that no longer accept the `--models` flag.
 
+> [!IMPORTANT]
+> The build pipeline now gives the embedded Ollama daemon up to five minutes to advertise its readiness, probing both `localhost` and `127.0.0.1` before pulling models. This extended window prevents flaky CI jobs on slower builders and mirrors the runtime health-check expectations.
+
 ## 🧰 Environment Variables
 
 | Variable | Description | Default |
