@@ -73,6 +73,9 @@ docker build \
 > [!TIP]
 > Identifiers that contain a colon (for example `deepseek-coder:6.7b`) are automatically duplicated with a dash-based alias (`deepseek-coder-6.7b`) so you can choose whichever tag is most convenient inside the container.
 
+> [!NOTE]
+> The Dockerfile uses POSIX-compliant `set -eu` guards instead of `set -o pipefail` so multi-architecture builds work on Debian's dash shell as well as bash. This keeps the builder stage portable across the official Ollama images used on both AMD64 and ARM64.
+
 The runtime image now exposes the `OLLAMA_PRELOADED_MODELS` environment variable so downstream automation can confirm which artifacts are bundled.
 
 ## ⚙️ GitHub Actions CI/CD

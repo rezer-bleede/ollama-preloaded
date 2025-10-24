@@ -40,3 +40,9 @@ def test_builder_verifies_models_after_pull():
 def test_builder_waits_for_server_readiness():
     content = read_dockerfile()
     assert "Ollama did not become ready" in content
+
+
+def test_builder_uses_posix_compliant_shell_flags():
+    content = read_dockerfile()
+    assert "set -eu;" in content
+    assert "pipefail" not in content
