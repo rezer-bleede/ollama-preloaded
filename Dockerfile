@@ -8,7 +8,7 @@ ENV OLLAMA_SKIP_VERIFY=true \
     OLLAMA_HOME=/root/.ollama \
     OLLAMA_MODELS=/root/.ollama/models
 
-RUN set -euo pipefail; \
+RUN set -eu; \
     nohup ollama serve --models "$OLLAMA_HOME" >/tmp/ollama.log 2>&1 & \
     echo "Starting Ollama..." && \
     for i in $(seq 1 30); do \
@@ -31,7 +31,7 @@ RUN set -euo pipefail; \
     pkill ollama || echo "ℹ️ Ollama already stopped"
 
 # Ensure a dash based alias exists for colon based model names (e.g. phi3:mini -> phi3-mini)
-RUN set -euo pipefail; \
+RUN set -eu; \
     for MODEL_NAME in $MODEL_NAMES; do \
         MODEL_ALIAS=$(printf '%s' "$MODEL_NAME" | tr ':' '-'); \
         if [ "$MODEL_ALIAS" != "$MODEL_NAME" ]; then \
