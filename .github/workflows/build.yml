@@ -1,4 +1,4 @@
-name: Build and Push Ollama Preloaded Images
+name: 🧠 Build & Push Ollama Preloaded (Multi-Arch)
 
 on:
   workflow_dispatch:
@@ -6,70 +6,75 @@ on:
     branches:
       - main
 
-env:
-  DOCKERHUB_USERNAME: rezerbleede
-  IMAGE_NAME: ollama-preloaded
-
 jobs:
   build:
+    name: Build and Push Multi-Arch Images
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+      packages: write
+
     steps:
+      # ------------------------------------------------------
+      # 1️⃣ Checkout repository
+      # ------------------------------------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # -------------------------------
-      # 🧹 Free up disk space
-      # -------------------------------
+      # ------------------------------------------------------
+      # 2️⃣ Free disk space (GitHub runners are small)
+      # ------------------------------------------------------
       - name: Free disk space
         run: |
-          echo "Before cleanup:"
-          df -h
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc || true
-          docker system prune -af || true
-          echo "After cleanup:"
-          df -h
+          echo "Cleaning up to free space for large model layers..."
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /usr/local/lib/android /opt/hostedtoolcache
+          sudo apt-get clean
+          docker system prune -af
 
-      # -------------------------------
-      # 🐳 Set up Docker Buildx
-      # -------------------------------
+      # ------------------------------------------------------
+      # 3️⃣ Set up Docker Buildx for multi-arch builds
+      # ------------------------------------------------------
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          install: true
 
-      # -------------------------------
-      # 🔑 Login to DockerHub
-      # -------------------------------
-      - name: Login to DockerHub
+      # ------------------------------------------------------
+      # 4️⃣ Login to Docker Hub
+      # ------------------------------------------------------
+      - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # -------------------------------
-      # 🧱 Build and push Llama 3 image
-      # -------------------------------
-      - name: Build and Push Llama 3 Image
+      # ------------------------------------------------------
+      # 5️⃣ Build & Push — Llama 3
+      # ------------------------------------------------------
+      - name: Build & Push Llama 3 Image
         run: |
           docker buildx build \
-            --platform linux/amd64 \
-            -t $DOCKERHUB_USERNAME/$IMAGE_NAME:llama3 \
+            --platform linux/amd64,linux/arm64 \
+            -t rezerbleede/ollama-preloaded:llama3 \
             --build-arg MODEL_NAME=llama3 \
             --push .
 
-      # -------------------------------
-      # 🧱 Build and push Phi-3 Mini image
-      # -------------------------------
-      - name: Build and Push Phi-3 Mini Image
+      # ------------------------------------------------------
+      # 6️⃣ Build & Push — Phi-3 Mini
+      # ------------------------------------------------------
+      - name: Build & Push Phi-3 Mini Image
         run: |
           docker buildx build \
-            --platform linux/amd64 \
-            -t $DOCKERHUB_USERNAME/$IMAGE_NAME:phi3-mini \
+            --platform linux/amd64,linux/arm64 \
+            -t rezerbleede/ollama-preloaded:phi3-mini \
             --build-arg MODEL_NAME=phi3:mini \
             --push .
 
-      # -------------------------------
-      # ✅ Post-build cleanup
-      # -------------------------------
-      - name: Disk cleanup after build
-        if: always()
-        run: docker system prune -af || true
+      # ------------------------------------------------------
+      # 7️⃣ Verify manifests
+      # ------------------------------------------------------
+      - name: Verify pushed manifests
+        run: |
+          docker buildx imagetools inspect rezerbleede/ollama-preloaded:llama3
+          docker buildx imagetools inspect rezerbleede/ollama-preloaded:phi3-mini
