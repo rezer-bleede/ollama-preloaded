@@ -9,7 +9,7 @@ ENV OLLAMA_SKIP_VERIFY=true \
     OLLAMA_MODELS=/root/.ollama/models
 
 RUN set -eu; \
-    nohup ollama serve --models "$OLLAMA_HOME" >/tmp/ollama.log 2>&1 & \
+    nohup ollama serve >/tmp/ollama.log 2>&1 & \
     echo "Starting Ollama..." && \
     for i in $(seq 1 30); do \
         if curl -s http://localhost:11434/api/tags >/dev/null 2>&1; then \
@@ -70,4 +70,4 @@ ENV OLLAMA_DEFAULT_MODEL=$DEFAULT_MODEL \
     OLLAMA_PRELOADED_MODELS="$MODEL_NAMES"
 
 EXPOSE 11434
-ENTRYPOINT ["ollama", "serve", "--models", "/root/.ollama"]
+ENTRYPOINT ["ollama", "serve"]

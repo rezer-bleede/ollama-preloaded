@@ -37,14 +37,14 @@ curl http://localhost:11434/api/generate -d '{"model":"llama3","prompt":"Hello"}
 
 ### ✅ Verifying the preload
 
-Each image now starts the Ollama server with an explicit models directory:
+Each image now starts the Ollama server with the models directory configured via the `OLLAMA_MODELS` environment variable:
 
 ```bash
 docker logs <container> | grep "Loaded"
 curl http://localhost:11434/api/tags
 ```
 
-You should see the preloaded model (for example `llama3` or `phi3:mini`) listed in the response. The container’s entrypoint runs `ollama serve --models /root/.ollama`, ensuring the embedded models are discoverable even on upgraded Ollama releases.
+You should see the preloaded model (for example `llama3` or `phi3:mini`) listed in the response. The container relies on the built-in environment configuration (`OLLAMA_HOME=/root/.ollama`, `OLLAMA_MODELS=/root/.ollama/models`) so it stays compatible with newer Ollama releases that no longer accept the `--models` flag.
 
 ## 🧰 Environment Variables
 

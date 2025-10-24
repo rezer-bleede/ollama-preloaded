@@ -5,9 +5,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 README_PATH = PROJECT_ROOT / "README.md"
 
 
-def test_readme_mentions_models_flag():
+def test_readme_documents_models_environment_variable():
     content = README_PATH.read_text(encoding="utf-8")
-    assert "--models /root/.ollama" in content, "README should document the explicit models directory"
+    assert "OLLAMA_MODELS" in content, "README should reference the environment-based configuration"
 
 
 def test_readme_curl_example_uses_correct_port():

@@ -14,9 +14,10 @@ def test_models_directory_is_explicitly_configured():
     assert "OLLAMA_MODELS=/root/.ollama/models" in content
 
 
-def test_entrypoint_uses_models_flag():
+def test_entrypoint_relies_on_environment_configuration():
     content = read_dockerfile()
-    assert 'ENTRYPOINT ["ollama", "serve", "--models", "/root/.ollama"]' in content
+    assert 'ENTRYPOINT ["ollama", "serve"]' in content
+    assert '--models' not in content
 
 
 def test_multi_model_build_arguments_are_available():
