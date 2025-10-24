@@ -13,6 +13,13 @@ It’s ideal for use in air‑gapped environments, CI/CD pipelines, or rapid pro
 |-----|------------------|----------------|-------|
 | `llama3` | Meta Llama 3 | ~4.7 GB | High‑performance general‑purpose LLM |
 | `phi3-mini` | Microsoft Phi‑3 Mini | ~2.2 GB | Compact model optimized for efficiency |
+| `sqlcoder` | Defog SQLCoder 7B | ~7.7 GB | Purpose-built for SQL generation, data modeling, and relational reasoning |
+| `deepseek-coder-6.7b` | DeepSeek Coder 6.7B | ~14 GB | Alias for `deepseek-coder:6.7b` — great for ERD prompts |
+| `llama3.1-8b-instruct` | Meta Llama 3.1 8B Instruct | ~8.1 GB | Alias for `llama3.1:8b-instruct` with strong schema design skills |
+
+## 🧠 Data Modeling Playbook
+
+Need to generate entity‑relationship diagrams (ERDs), infer table joins, or reason about dataset relationships? Preload a combination of the models above using the new multi-model build flow and route prompts to the best fit for each task.
 
 ## 🧱 Usage
 
@@ -51,10 +58,22 @@ You should see the preloaded model (for example `llama3` or `phi3:mini`) listed 
 
 ## 🏗️ Building Locally
 
-You can build and preload any model via build‑args:
+You can now preload **multiple models at once** using the build arguments:
 ```bash
-docker build -t ollama-preloaded:custom --build-arg MODEL_NAME=llama3 .
+docker build \
+  -t ollama-preloaded:data-stack \
+  --build-arg MODEL_NAMES="sqlcoder deepseek-coder:6.7b llama3.1:8b-instruct" \
+  --build-arg DEFAULT_MODEL=sqlcoder \
+  .
 ```
+
+* `MODEL_NAMES` accepts a space-separated list of Ollama model identifiers. Each entry is downloaded, validated with `ollama show`, and made available inside the image.
+* `DEFAULT_MODEL` controls the model served on container start (defaults to the first entry). When omitted it falls back to `phi3:mini` for backwards compatibility.
+
+> [!TIP]
+> Identifiers that contain a colon (for example `deepseek-coder:6.7b`) are automatically duplicated with a dash-based alias (`deepseek-coder-6.7b`) so you can choose whichever tag is most convenient inside the container.
+
+The runtime image now exposes the `OLLAMA_PRELOADED_MODELS` environment variable so downstream automation can confirm which artifacts are bundled.
 
 ## ⚙️ GitHub Actions CI/CD
 
