@@ -28,6 +28,17 @@ Once running, you can interact with Ollama’s local API:
 curl http://localhost:11434/api/generate -d '{"model":"llama3","prompt":"Hello"}'
 ```
 
+### ✅ Verifying the preload
+
+Each image now starts the Ollama server with an explicit models directory:
+
+```bash
+docker logs <container> | grep "Loaded"
+curl http://localhost:11434/api/tags
+```
+
+You should see the preloaded model (for example `llama3` or `phi3:mini`) listed in the response. The container’s entrypoint runs `ollama serve --models /root/.ollama`, ensuring the embedded models are discoverable even on upgraded Ollama releases.
+
 ## 🧰 Environment Variables
 
 | Variable | Description | Default |
@@ -35,6 +46,8 @@ curl http://localhost:11434/api/generate -d '{"model":"llama3","prompt":"Hello"}
 | `OLLAMA_DEFAULT_MODEL` | Default model to serve | `llama3` |
 | `OLLAMA_KEEP_ALIVE` | Keep model in memory duration | `24h` |
 | `OLLAMA_SKIP_VERIFY` | Skip TLS verification (useful in air‑gapped environments) | `true` |
+| `OLLAMA_HOME` | Home directory used by Ollama | `/root/.ollama` |
+| `OLLAMA_MODELS` | Location of model blobs and manifests | `/root/.ollama/models` |
 
 ## 🏗️ Building Locally
 
