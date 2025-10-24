@@ -27,3 +27,10 @@ def test_readme_documents_multi_model_build_flow():
     assert "--build-arg MODEL_NAMES" in content
     assert "--build-arg DEFAULT_MODEL" in content
     assert "OLLAMA_PRELOADED_MODELS" in content
+
+
+def test_readme_notes_extended_startup_window():
+    content = README_PATH.read_text(encoding="utf-8")
+    lowered = content.lower()
+    assert "five minutes" in lowered
+    assert "127.0.0.1" in content

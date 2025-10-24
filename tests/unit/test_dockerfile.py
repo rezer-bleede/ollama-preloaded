@@ -43,6 +43,18 @@ def test_builder_waits_for_server_readiness():
     assert "Ollama did not become ready" in content
 
 
+def test_builder_uses_extended_startup_window():
+    content = read_dockerfile()
+    assert "seq 1 150" in content
+    assert "($i/150)" in content
+
+
+def test_builder_checks_localhost_and_loopback():
+    content = read_dockerfile()
+    assert "for HOST in localhost 127.0.0.1" in content
+    assert '"http://$HOST:11434/api/tags"' in content
+
+
 def test_builder_uses_posix_compliant_shell_flags():
     content = read_dockerfile()
     assert "set -eu;" in content
