@@ -49,10 +49,17 @@ def test_builder_uses_extended_startup_window():
     assert "($i/150)" in content
 
 
-def test_builder_checks_localhost_and_loopback():
+def test_builder_checks_localhost_loopback_and_ipv6():
     content = read_dockerfile()
-    assert "for HOST in localhost 127.0.0.1" in content
-    assert '"http://$HOST:11434/api/tags"' in content
+    assert 'for URL in \\' in content
+    assert '"http://localhost:11434/api/tags"' in content
+    assert '"http://127.0.0.1:11434/api/tags"' in content
+    assert '"http://[::1]:11434/api/tags"' in content
+
+
+def test_builder_logs_success_with_url_context():
+    content = read_dockerfile()
+    assert '✅ Ollama is ready via $URL' in content
 
 
 def test_builder_uses_posix_compliant_shell_flags():

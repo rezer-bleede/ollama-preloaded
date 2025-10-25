@@ -34,3 +34,4 @@ def test_readme_notes_extended_startup_window():
     lowered = content.lower()
     assert "five minutes" in lowered
     assert "127.0.0.1" in content
+    assert "[::1]" in content

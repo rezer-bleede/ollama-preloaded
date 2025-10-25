@@ -13,9 +13,12 @@ RUN set -eu; \
     echo "Starting Ollama..." && \
     READY=0; \
     for i in $(seq 1 150); do \
-        for HOST in localhost 127.0.0.1; do \
-            if curl -sSf --max-time 2 --connect-timeout 2 "http://$HOST:11434/api/tags" >/dev/null 2>&1; then \
-                echo "✅ Ollama is ready"; \
+        for URL in \
+            "http://localhost:11434/api/tags" \
+            "http://127.0.0.1:11434/api/tags" \
+            "http://[::1]:11434/api/tags"; do \
+            if curl -sSf --max-time 2 --connect-timeout 2 "$URL" >/dev/null 2>&1; then \
+                echo "✅ Ollama is ready via $URL"; \
                 READY=1; \
                 break 2; \
             fi; \
