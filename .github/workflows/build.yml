@@ -62,7 +62,7 @@ jobs:
             -t rezerbleede/ollama-preloaded:${{ matrix.tag }} \
             --build-arg MODEL_NAMES="${{ matrix.model_names }}" \
             --build-arg DEFAULT_MODEL="${{ matrix.default_model }}" \
-            --build-arg STARTUP_WAIT_SECS=1200 \
+            --build-arg STARTUP_WAIT_SECS=2200 \
             --push .
 
       # 6) Verify manifest
