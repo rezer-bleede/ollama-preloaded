@@ -3,17 +3,17 @@
 # ===========================
 FROM --platform=$BUILDPLATFORM ollama/ollama:latest AS builder
 
-# Space-separated list of models to preload (e.g. "llama3 phi3:mini")
+# Space-separated list of models to preload
 ARG MODEL_NAMES="llama3 phi3:mini"
-# Readiness timeout (seconds)
-ARG STARTUP_WAIT_SECS=1200
+ARG STARTUP_WAIT_SECS=300
 
-# Build-time env
-ENV OLLAMA_SKIP_VERIFY=true \
-    OLLAMA_HOME=/root/.ollama \
+# Build-time env (works on 0.12.x too)
+ENV OLLAMA_HOME=/root/.ollama \
     OLLAMA_MODELS=/root/.ollama/models \
     OLLAMA_HOST=127.0.0.1:11434 \
-    OLLAMA_LOAD_TIMEOUT=20m \
+    OLLAMA_SKIP_VERIFY=true \
+    OLLAMA_DEBUG=debug \
+    OLLAMA_KEEP_ALIVE=5m \
     OLLAMA_MAX_LOADED_MODELS=0 \
     OLLAMA_NUM_PARALLEL=1 \
     CUDA_VISIBLE_DEVICES= \
@@ -21,36 +21,35 @@ ENV OLLAMA_SKIP_VERIFY=true \
     HIP_VISIBLE_DEVICES= \
     ROCR_VISIBLE_DEVICES=
 
-# 1) Tools + precreate Ed25519 keypair (avoid entropy stalls under QEMU)
+# Minimal tools + pre-create SSH key (avoids entropy stalls under emulation)
 RUN set -eu; \
     if command -v apt-get >/dev/null 2>&1; then \
-      apt-get update && apt-get install -y --no-install-recommends openssh-client ca-certificates curl && \
+      apt-get update && apt-get install -y --no-install-recommends curl ca-certificates openssh-client && \
       rm -rf /var/lib/apt/lists/*; \
     fi; \
     mkdir -p "${OLLAMA_HOME}"; \
     if [ ! -f "${OLLAMA_HOME}/id_ed25519" ]; then \
       echo "🔑 Precreating Ed25519 keypair at ${OLLAMA_HOME}"; \
-      if command -v ssh-keygen >/dev/null 2>&1; then \
-        ssh-keygen -t ed25519 -N "" -f "${OLLAMA_HOME}/id_ed25519"; \
-      else \
-        # Fallback to openssl if ssh-keygen is unavailable
-        if ! command -v openssl >/dev/null 2>&1; then \
-          echo "❌ Neither ssh-keygen nor openssl present"; exit 1; \
-        fi; \
-        openssl genpkey -algorithm Ed25519 -out "${OLLAMA_HOME}/id_ed25519"; \
-        openssl pkey -in "${OLLAMA_HOME}/id_ed25519" -pubout -out "${OLLAMA_HOME}/id_ed25519.pub"; \
-      fi; \
+      ssh-keygen -t ed25519 -N "" -f "${OLLAMA_HOME}/id_ed25519"; \
     fi
 
-# 2) Start serve (IPv4), wait (log OR HTTP if curl exists), then pull models + alias
+# Start serve, wait, preload, alias, stop
 RUN set -eu; \
     echo ">> Starting ollama serve (background)"; \
-    nohup ollama serve --host 127.0.0.1 >/tmp/ollama.log 2>&1 & \
+    # IMPORTANT: no --host, rely on OLLAMA_HOST for 0.12.x compatibility
+    nohup ollama serve >/tmp/ollama.log 2>&1 & \
     pid=$!; \
     echo ">> Waiting for readiness (up to ${STARTUP_WAIT_SECS}s)"; \
     end=$(( $(date +%s) + STARTUP_WAIT_SECS )); \
     ready=0; \
     while [ "$(date +%s)" -lt "$end" ]; do \
+      # fail fast if process died
+      if ! kill -0 "$pid" 2>/dev/null; then \
+        echo "❌ ollama serve exited early"; \
+        echo "----- /tmp/ollama.log -----"; tail -n +1 /tmp/ollama.log || true; \
+        exit 1; \
+      fi; \
+      # readiness via log line or HTTP
       if grep -q "Listening on" /tmp/ollama.log 2>/dev/null; then ready=1; break; fi; \
       if command -v curl >/dev/null 2>&1 && curl -fsS http://127.0.0.1:11434/api/version >/dev/null 2>&1; then ready=1; break; fi; \
       sleep 2; \
@@ -63,9 +62,13 @@ RUN set -eu; \
     echo "✅ Ollama is ready"; \
     for MODEL in ${MODEL_NAMES}; do \
       echo "⬇️  Pulling ${MODEL}"; \
-      ollama pull "${MODEL}" || { echo "❌ pull failed for ${MODEL}"; tail -n +200 /tmp/ollama.log || true; exit 1; }; \
+      if ! ollama pull "${MODEL}"; then \
+        echo "❌ pull failed for ${MODEL}"; \
+        echo "----- /tmp/ollama.log (tail) -----"; tail -n 200 /tmp/ollama.log || true; \
+        exit 1; \
+      fi; \
       ollama show "${MODEL}" >/dev/null 2>&1 || { echo "❌ missing manifest for ${MODEL}"; exit 1; }; \
-      # optional alias: colon → dash (phi3:mini -> phi3-mini)
+      # colon→dash alias (phi3:mini -> phi3-mini)
       ALIAS="$(printf '%s' "${MODEL}" | tr ':' '-')"; \
       if [ "${ALIAS}" != "${MODEL}" ]; then \
         echo "🔁 Creating alias ${ALIAS} for ${MODEL}"; \
