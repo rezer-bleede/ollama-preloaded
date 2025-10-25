@@ -13,68 +13,59 @@ jobs:
 
     permissions:
       contents: read
-      packages: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - tag: llama3
+            model_names: "llama3"
+            default_model: "llama3"
+          - tag: phi3-mini
+            model_names: "phi3:mini"
+            default_model: "phi3:mini"
 
     steps:
-      # ------------------------------------------------------
-      # 1️⃣ Checkout repository
-      # ------------------------------------------------------
+      # 1) Checkout
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ------------------------------------------------------
-      # 2️⃣ Free disk space (GitHub runners are small)
-      # ------------------------------------------------------
+      # 2) Free disk space
       - name: Free disk space
         run: |
-          echo "Cleaning up to free space for large model layers..."
-          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /usr/local/lib/android /opt/hostedtoolcache
+          echo "Cleaning space for large model layers..."
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /usr/local/lib/android /opt/hostedtoolcache || true
           sudo apt-get clean
-          docker system prune -af
+          docker system prune -af || true
+          df -h || true
 
-      # ------------------------------------------------------
-      # 3️⃣ Set up Docker Buildx for multi-arch builds
-      # ------------------------------------------------------
+      # 3) Setup QEMU & Buildx
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
           install: true
 
-      # ------------------------------------------------------
-      # 4️⃣ Login to Docker Hub
-      # ------------------------------------------------------
+      # 4) Login to Docker Hub
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # ------------------------------------------------------
-      # 5️⃣ Build & Push — Llama 3
-      # ------------------------------------------------------
-      - name: Build & Push Llama 3 Image
+      # 5) Build & Push (matrix)
+      - name: Build & Push ${{ matrix.tag }}
         run: |
           docker buildx build \
             --platform linux/amd64,linux/arm64 \
-            -t rezerbleede/ollama-preloaded:llama3 \
-            --build-arg MODEL_NAME=llama3 \
+            -t rezerbleede/ollama-preloaded:${{ matrix.tag }} \
+            --build-arg MODEL_NAMES="${{ matrix.model_names }}" \
+            --build-arg DEFAULT_MODEL="${{ matrix.default_model }}" \
+            --build-arg STARTUP_WAIT_SECS=1200 \
             --push .
 
-      # ------------------------------------------------------
-      # 6️⃣ Build & Push — Phi-3 Mini
-      # ------------------------------------------------------
-      - name: Build & Push Phi-3 Mini Image
+      # 6) Verify manifest
+      - name: Verify manifest ${{ matrix.tag }}
         run: |
-          docker buildx build \
-            --platform linux/amd64,linux/arm64 \
-            -t rezerbleede/ollama-preloaded:phi3-mini \
-            --build-arg MODEL_NAME=phi3:mini \
-            --push .
-
-      # ------------------------------------------------------
-      # 7️⃣ Verify manifests
-      # ------------------------------------------------------
-      - name: Verify pushed manifests
-        run: |
-          docker buildx imagetools inspect rezerbleede/ollama-preloaded:llama3
-          docker buildx imagetools inspect rezerbleede/ollama-preloaded:phi3-mini
+          docker buildx imagetools inspect rezerbleede/ollama-preloaded:${{ matrix.tag }}
